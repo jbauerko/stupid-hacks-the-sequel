@@ -3,25 +3,22 @@
 import { MapContainer, TileLayer, CircleMarker, Tooltip, Polyline } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
-export interface StopMarker {
-  stopId: string;
-  stopName: string;
+export interface Station {
+  id: string;
+  name: string;
   lat: number;
   lon: number;
+  stopIds: Record<number, string>;
 }
 
 interface IonMapProps {
-  stops: StopMarker[];
-  selectedStopId: string;
-  onStopSelect: (stopId: string) => void;
+  stations: Station[];
+  selectedStationId: string;
+  onStationSelect: (id: string) => void;
 }
 
-function cleanStopName(name: string): string {
-  return name.replace(/ - (Northbound|Southbound|Eastbound|Westbound)$/i, "");
-}
-
-export default function IonMap({ stops, selectedStopId, onStopSelect }: IonMapProps) {
-  const routeLine = stops.map((s) => [s.lat, s.lon] as [number, number]);
+export default function IonMap({ stations, selectedStationId, onStationSelect }: IonMapProps) {
+  const routeLine = stations.map((s) => [s.lat, s.lon] as [number, number]);
 
   return (
     <MapContainer
@@ -34,17 +31,13 @@ export default function IonMap({ stops, selectedStopId, onStopSelect }: IonMapPr
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-
-      {/* Route line */}
       <Polyline positions={routeLine} color="#006bb7" weight={4} opacity={0.6} />
-
-      {/* Stop markers */}
-      {stops.map((stop) => {
-        const isSelected = stop.stopId === selectedStopId;
+      {stations.map((station) => {
+        const isSelected = station.id === selectedStationId;
         return (
           <CircleMarker
-            key={stop.stopId}
-            center={[stop.lat, stop.lon]}
+            key={station.id}
+            center={[station.lat, station.lon]}
             radius={isSelected ? 12 : 8}
             pathOptions={{
               color: isSelected ? "#f87171" : "#006bb7",
@@ -52,11 +45,9 @@ export default function IonMap({ stops, selectedStopId, onStopSelect }: IonMapPr
               fillOpacity: 1,
               weight: isSelected ? 3 : 2,
             }}
-            eventHandlers={{ click: () => onStopSelect(stop.stopId) }}
+            eventHandlers={{ click: () => onStationSelect(station.id) }}
           >
-            <Tooltip direction="top" offset={[0, -10]}>
-              {cleanStopName(stop.stopName)}
-            </Tooltip>
+            <Tooltip direction="top" offset={[0, -10]}>{station.name}</Tooltip>
           </CircleMarker>
         );
       })}
