@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 
 export default function Home() {
@@ -50,8 +52,9 @@ export default function Home() {
         </p>
 
         <div style={{ display: "flex", gap: "1.5rem" }}>
-          {/* The green button that does absolutely nothing */}
+          {/* The green button that reloads the page — maximum frustration */}
           <button
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             style={{
               background: "#16a34a",
               color: "#fff",
@@ -68,7 +71,7 @@ export default function Home() {
 
           {/* The red button that actually works */}
           <Link
-            href="/mode"
+            href="/travel"
             style={{
               background: "#dc2626",
               color: "#fff",
@@ -77,6 +80,8 @@ export default function Home() {
               fontSize: "1.25rem",
               fontWeight: "bold",
               textDecoration: "none",
+              display: "flex",
+              alignItems: "center",
             }}
           >
             ion wanna know

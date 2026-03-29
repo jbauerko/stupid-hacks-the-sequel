@@ -3,31 +3,27 @@
 import { MapContainer, TileLayer, CircleMarker, Tooltip, Polyline } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
-export interface StopMarker {
-  stopId: string;
-  stopName: string;
+export interface Station {
+  id: string;
+  name: string;
   lat: number;
   lon: number;
+  stopIds: Record<number, string>;
 }
 
 interface IonMapProps {
-  stops: StopMarker[];
-  selectedStopId: string;
-  onStopSelect: (stopId: string) => void;
+  stations: Station[];
+  routePaths: Record<number, [number, number][]>;
+  selectedStationId: string;
+  onStationSelect: (id: string) => void;
 }
 
-function cleanStopName(name: string): string {
-  return name.replace(/ - (Northbound|Southbound|Eastbound|Westbound)$/i, "");
-}
-
-export default function IonMap({ stops, selectedStopId, onStopSelect }: IonMapProps) {
-  const routeLine = stops.map((s) => [s.lat, s.lon] as [number, number]);
-
+export default function IonMap({ stations, routePaths, selectedStationId, onStationSelect }: IonMapProps) {
   return (
     <MapContainer
       center={[43.455, -80.49]}
       zoom={13}
-      className="w-full h-full rounded-lg"
+      className="w-full h-full"
       scrollWheelZoom={true}
     >
       <TileLayer
@@ -35,27 +31,33 @@ export default function IonMap({ stops, selectedStopId, onStopSelect }: IonMapPr
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
 
-      {/* Route line */}
-      <Polyline positions={routeLine} color="#006bb7" weight={4} opacity={0.6} />
+      {/* Route lines — #006BB7 = ION Blue */}
+      {routePaths[0] && (
+        <Polyline positions={routePaths[0]} color="#006BB7" weight={5} opacity={0.8} />
+      )}
+      {routePaths[1] && (
+        <Polyline positions={routePaths[1]} color="#006BB7" weight={3} opacity={0.4} />
+      )}
 
-      {/* Stop markers */}
-      {stops.map((stop) => {
-        const isSelected = stop.stopId === selectedStopId;
+      {stations.map((station) => {
+        const isSelected = station.id === selectedStationId;
         return (
           <CircleMarker
-            key={stop.stopId}
-            center={[stop.lat, stop.lon]}
-            radius={isSelected ? 12 : 8}
+            key={station.id}
+            center={[station.lat, station.lon]}
+            radius={isSelected ? 11 : 7}
             pathOptions={{
-              color: isSelected ? "#f87171" : "#006bb7",
-              fillColor: isSelected ? "#ef4444" : "#ffffff",
+              color: "#006BB7",             // #006BB7 = ION Blue (stroke)
+              fillColor: isSelected
+                ? "#FFD100"                 // #FFD100 = ION Yellow (selected fill)
+                : "#FFFFFF",               // #FFFFFF = White (default fill)
               fillOpacity: 1,
               weight: isSelected ? 3 : 2,
             }}
-            eventHandlers={{ click: () => onStopSelect(stop.stopId) }}
+            eventHandlers={{ click: () => onStationSelect(station.id) }}
           >
-            <Tooltip direction="top" offset={[0, -10]}>
-              {cleanStopName(stop.stopName)}
+            <Tooltip direction="top" offset={[0, -10]} className="ion-tooltip">
+              {station.name}
             </Tooltip>
           </CircleMarker>
         );
