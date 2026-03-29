@@ -31,20 +31,26 @@ export default function ScrollWheel({ times }: ScrollWheelProps) {
         className="absolute inset-x-0 top-0 z-10 pointer-events-none"
         style={{
           height: padding,
-          background: "linear-gradient(to bottom, rgb(3 7 18), transparent)",
+          background: "linear-gradient(to bottom, #1A1A2E, transparent)", // #1A1A2E = page bg
         }}
       />
       {/* Highlight band */}
       <div
-        className="absolute inset-x-0 z-10 pointer-events-none border-y border-red-800 bg-red-950/30"
-        style={{ top: padding, height: ITEM_HEIGHT }}
+        className="absolute inset-x-0 z-10 pointer-events-none"
+        style={{
+          top: padding,
+          height: ITEM_HEIGHT,
+          borderTop: "2px solid #FFD100",   // #FFD100 = ION Yellow
+          borderBottom: "2px solid #FFD100",
+          background: "rgba(0, 107, 183, 0.15)", // #006BB7 = ION Blue, low opacity
+        }}
       />
       {/* Fade bottom */}
       <div
         className="absolute inset-x-0 bottom-0 z-10 pointer-events-none"
         style={{
           height: padding,
-          background: "linear-gradient(to top, rgb(3 7 18), transparent)",
+          background: "linear-gradient(to top, #1A1A2E, transparent)", // #1A1A2E = page bg
         }}
       />
 
@@ -64,7 +70,8 @@ export default function ScrollWheel({ times }: ScrollWheelProps) {
         {times.map((time) => (
           <div
             key={time}
-            className="flex items-center justify-center text-gray-300 font-mono text-lg"
+            className="flex items-center justify-center font-mono text-lg"
+          style={{ color: "#FFFFFF" }} // #FFFFFF = white
             style={{ height: ITEM_HEIGHT, scrollSnapAlign: "center" }}
           >
             {time}

@@ -11,6 +11,7 @@ interface ScheduleData {
   stations: Station[];
   schedule: Record<string, Record<number, number[]>>;
   headsigns: Record<number, string>;
+  routePaths: Record<number, [number, number][]>;
 }
 
 function minutesToDisplay(min: number): string {
@@ -35,6 +36,18 @@ function getNotArrivingTimes(arrivalMinutes: number[], windowHours = 2): string[
   return notArriving;
 }
 
+// Placeholder logo — replace the contents of this component with your own SVG/image
+function Logo() {
+  return (
+    <div
+      className="flex items-center justify-center font-bold text-sm tracking-widest border-2 px-3 py-1"
+      style={{ borderColor: "#FFD100", color: "#FFD100", minWidth: 80 }}
+    >
+      [ LOGO ]
+    </div>
+  );
+}
+
 export default function Home() {
   const [data, setData] = useState<ScheduleData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,12 +65,10 @@ export default function Home() {
   const headsigns = data?.headsigns ?? {};
   const selectedStation = data?.stations.find((s) => s.id === selectedStationId);
 
-  // Directions available at this station
   const availableDirections = selectedStation
     ? Object.keys(selectedStation.stopIds).map(Number)
     : [];
 
-  // Look up arrivals using the direction-specific stop ID
   const rawMinutes =
     selectedStation && direction !== null && data
       ? data.schedule[String(selectedStation.stopIds[direction])]?.[direction]
@@ -73,86 +84,129 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white flex flex-col">
-      <div className="px-8 pt-8 pb-4">
-        <h1 className="text-4xl font-bold text-red-400 mb-1">Ion Not Arriving</h1>
-        <p className="text-gray-400">
-          The transit planner that tells you when the Ion will{" "}
-          <span className="line-through text-gray-600">arrive</span>{" "}
-          <span className="text-red-400 font-semibold">NOT arrive</span>.
-          {!selectedStationId && !loading && (
-            <span className="text-gray-500 ml-2">Click a stop to get started.</span>
-          )}
-        </p>
-      </div>
+    <div className="min-h-screen flex flex-col" style={{ background: "#1A1A2E", color: "#FFFFFF" }}>
 
-      <div className="flex flex-1 gap-0 px-8 pb-8" style={{ minHeight: 0 }}>
-        {/* Map */}
-        <div className="flex-1 rounded-lg overflow-hidden" style={{ height: "70vh" }}>
+      {/* Header */}
+      <header
+        className="flex items-center gap-4 px-6 py-3 shrink-0"
+        style={{ background: "#006BB7", borderBottom: "3px solid #FFD100" }}
+      >
+        <Logo />
+        <div>
+          <div className="font-bold text-xl tracking-tight" style={{ color: "#FFFFFF" }}>
+            Ion Not Arriving
+          </div>
+          <div className="text-xs" style={{ color: "#FFD100" }}>
+            Waterloo Region&apos;s most useless transit planner
+          </div>
+        </div>
+      </header>
+
+      {/* Body */}
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* Map area */}
+        <div className="flex-1 relative" style={{ minHeight: 0 }}>
           {loading && (
-            <div className="w-full h-full bg-gray-900 rounded-lg flex items-center justify-center text-gray-400 animate-pulse">
-              Loading Ion schedule data...
+            <div
+              className="absolute inset-0 flex items-center justify-center text-sm"
+              style={{ background: "#0A0A1A", color: "#006BB7" }}
+            >
+              Loading ION schedule…
             </div>
           )}
           {error && (
-            <div className="w-full h-full bg-red-950 border border-red-800 rounded-lg flex items-center justify-center text-red-400 p-8">
+            <div
+              className="absolute inset-0 flex items-center justify-center text-sm p-8 text-center"
+              style={{ background: "#0A0A1A", color: "#FFD100" }}
+            >
               {error}
             </div>
           )}
           {!loading && !error && data && (
             <IonMap
               stations={data.stations}
+              routePaths={data.routePaths}
               selectedStationId={selectedStationId}
               onStationSelect={handleStationSelect}
             />
           )}
+          {!selectedStationId && !loading && (
+            <div
+              className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs px-3 py-1.5 pointer-events-none"
+              style={{ background: "#006BB7", color: "#FFFFFF" }}
+            >
+              Click a station
+            </div>
+          )}
         </div>
 
         {/* Side panel */}
-        {selectedStation && (
-          <div className="w-80 ml-6 flex flex-col gap-4 overflow-y-auto">
-            <div>
-              <h2 className="text-lg font-bold text-white">{selectedStation.name}</h2>
-              <p className="text-gray-500 text-sm">Select a direction</p>
+        <div
+          className="w-72 shrink-0 flex flex-col overflow-y-auto"
+          style={{ borderLeft: "2px solid #006BB7", background: "#1A1A2E" }}
+        >
+          {!selectedStation ? (
+            <div
+              className="flex-1 flex items-center justify-center text-center text-xs p-8"
+              style={{ color: "#006BB7" }}
+            >
+              Select a station on the map to see when the ION will not arrive.
             </div>
-
-            <div className="flex flex-col gap-2">
-              {availableDirections.map((dir) => (
-                <button
-                  key={dir}
-                  onClick={() => setDirection(dir)}
-                  className={`py-3 px-4 rounded-lg border font-medium transition-colors text-left ${
-                    direction === dir
-                      ? "bg-red-700 border-red-500 text-white"
-                      : "bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-500"
-                  }`}
-                >
-                  → {headsigns[dir] ?? `Direction ${dir}`}
-                </button>
-              ))}
-            </div>
-
-            {direction !== null && (
-              <>
-                <div>
-                  <p className="text-gray-400 text-sm font-medium mb-1">
-                    Times the Ion will{" "}
-                    <span className="text-red-400 font-bold">NOT</span> arrive
-                  </p>
-                  <p className="text-gray-600 text-xs mb-2">
-                    Next 2 hrs · {notArrivingTimes.length} non-arrivals
-                  </p>
+          ) : (
+            <>
+              {/* Station name bar */}
+              <div
+                className="px-4 py-3 shrink-0"
+                style={{ background: "#006BB7", borderBottom: "2px solid #FFD100" }}
+              >
+                <div className="font-bold text-base" style={{ color: "#FFFFFF" }}>
+                  {selectedStation.name}
                 </div>
-                <ScrollWheel times={notArrivingTimes} />
-                <p className="text-gray-700 text-xs italic mt-2">
-                  * Based on the official GRT GTFS schedule.
-                  The Ion may also not arrive at scheduled times.
-                </p>
-              </>
-            )}
-          </div>
-        )}
+                <div className="text-xs mt-0.5" style={{ color: "#FFD100" }}>
+                  Select a direction
+                </div>
+              </div>
+
+              {/* Direction buttons */}
+              <div className="flex flex-col gap-2 p-4 shrink-0">
+                {availableDirections.map((dir) => (
+                  <button
+                    key={dir}
+                    onClick={() => setDirection(dir)}
+                    className="py-2 px-3 text-sm font-medium text-left transition-colors"
+                    style={
+                      direction === dir
+                        ? { background: "#FFD100", color: "#1A1A2E", border: "2px solid #FFD100" }
+                        : { background: "transparent", color: "#FFFFFF", border: "2px solid #006BB7" }
+                    }
+                  >
+                    → {headsigns[dir] ?? `Direction ${dir}`}
+                  </button>
+                ))}
+              </div>
+
+              {/* Non-arrival scroll wheel */}
+              {direction !== null && (
+                <div className="flex flex-col flex-1 px-4 pb-4">
+                  <div
+                    className="text-xs mb-1 shrink-0"
+                    style={{ color: "#006BB7" }}
+                  >
+                    Times the ION will{" "}
+                    <span style={{ color: "#FFD100" }} className="font-bold">NOT</span>{" "}
+                    arrive · next 2 hrs · {notArrivingTimes.length} slots
+                  </div>
+                  <ScrollWheel times={notArrivingTimes} />
+                  <div className="text-xs mt-3 shrink-0" style={{ color: "#444466" }}>
+                    * Based on GRT GTFS schedule. The ION may also not arrive at scheduled times.
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

@@ -124,17 +124,6 @@ export async function GET() {
       });
   }
 
-  // Build dir1ByName from ALL direction-1 stops (not just rep trip) to avoid short-turn misses
-  const dir1ByName = new Map<string, string>(); // cleanName → stopId
-  stopTimes.forEach((st) => {
-    const trip = tripMap.get(st.trip_id);
-    if (!trip || trip.directionId !== 1) return;
-    const info = stopMap.get(st.stop_id);
-    if (!info) return;
-    const clean = cleanName(info.name);
-    if (!dir1ByName.has(clean)) dir1ByName.set(clean, st.stop_id);
-  });
-
   type Station = {
     id: string;
     name: string;
@@ -143,19 +132,47 @@ export async function GET() {
     stopIds: Record<number, string>;
   };
 
-  const stations: Station[] = orderedStops[0].map((s) => {
-    const clean = cleanName(s.name);
-    const dir1StopId = dir1ByName.get(clean);
-    return {
-      id: s.stopId, // use dir0 stopId as canonical station id
-      name: clean,
+  // Build unified stations list from BOTH directions
+  const stationsByName = new Map<string, {
+    name: string;
+    stopIds: Record<number, string>;
+    lat: number;
+    lon: number;
+    sequence: number;
+  }>();
+
+  // Add all stops from both directions
+  [0, 1].forEach((dir) => {
+    orderedStops[dir]?.forEach((stop, idx) => {
+      const clean = cleanName(stop.name);
+      const existing = stationsByName.get(clean);
+      
+      if (existing) {
+        // Station already exists, add this direction's stop ID
+        existing.stopIds[dir] = stop.stopId;
+      } else {
+        // New station
+        stationsByName.set(clean, {
+          name: clean,
+          stopIds: { [dir]: stop.stopId },
+          lat: stop.lat,
+          lon: stop.lon,
+          sequence: dir === 0 ? idx : 1000 + idx, // Prefer dir 0 sequence for ordering
+        });
+      }
+    });
+  });
+
+  // Convert to array and sort by sequence
+  const stations: Station[] = Array.from(stationsByName.values())
+    .sort((a, b) => a.sequence - b.sequence)
+    .map((s) => ({
+      id: s.stopIds[0] ?? s.stopIds[1] ?? '', // Use dir 0 as canonical, fallback to dir 1
+      name: s.name,
       lat: s.lat,
       lon: s.lon,
-      stopIds: dir1StopId
-        ? { 0: s.stopId, 1: dir1StopId }
-        : { 0: s.stopId },
-    };
-  });
+      stopIds: s.stopIds,
+    }));
 
   // Headsigns
   const headsigns: Record<number, string> = {};
@@ -173,5 +190,13 @@ export async function GET() {
     });
   });
 
-  return NextResponse.json({ stations, schedule: scheduleOut, headsigns });
+  // Build route paths for each direction (for map rendering)
+  const routePaths: Record<number, [number, number][]> = {};
+  for (const dir of [0, 1]) {
+    if (orderedStops[dir]) {
+      routePaths[dir] = orderedStops[dir].map((s) => [s.lat, s.lon]);
+    }
+  }
+
+  return NextResponse.json({ stations, schedule: scheduleOut, headsigns, routePaths });
 }
