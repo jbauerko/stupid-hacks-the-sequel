@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import type { Station } from "./components/IonMap";
-import ScrollWheel from "./components/ScrollWheel";
+import PaginatedDropdown from "./components/PaginatedDropdown";
 
 const IonMap = dynamic(() => import("./components/IonMap"), { ssr: false });
 
@@ -187,7 +187,7 @@ export default function Home() {
               {/* Non-arrival scroll wheel */}
               {direction !== null && (
                 <div className="flex flex-col flex-1 px-4 pb-4">
-                  <ScrollWheel times={notArrivingTimes} />
+                  <PaginatedDropdown times={notArrivingTimes} />
                 </div>
               )}
             </>
