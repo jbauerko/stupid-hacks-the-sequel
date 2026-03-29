@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import type { Station } from "../components/IonMap";
@@ -57,7 +57,20 @@ function Logo() {
 /* ──────────────────────────────────────────────
    TUTORIAL OVERLAY
    ────────────────────────────────────────────── */
-function TutorialOverlay({ onDismiss, onExit }: { onDismiss: () => void; onExit: () => void }) {
+function TutorialOverlay({ onDismiss, onExit, targetRect }: { onDismiss: () => void; onExit: () => void; targetRect: DOMRect | null }) {
+  const pad = 8;
+  const spotStyle: React.CSSProperties = targetRect
+    ? {
+        top: targetRect.top - pad,
+        left: targetRect.left - pad,
+        width: targetRect.width + pad * 2,
+        height: targetRect.height + pad * 2,
+      }
+    : { top: 6, right: 8, width: 420, height: 52 };
+
+  const calloutTop = targetRect ? targetRect.bottom + pad + 4 : 66;
+  const calloutRight = targetRect ? window.innerWidth - targetRect.right : 24;
+
   return (
     <div
       onClick={onExit}
@@ -71,15 +84,12 @@ function TutorialOverlay({ onDismiss, onExit }: { onDismiss: () => void; onExit:
       {/* Dim layer */}
       <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.75)" }} />
 
-      {/* Spotlight cutout — transparent so clicks pass through to the real mode buttons */}
+      {/* Spotlight cutout */}
       <div
         id="tutorial-spotlight"
         style={{
-          position: "absolute",
-          top: 6,
-          right: 8,
-          width: 420,
-          height: 52,
+          position: "fixed",
+          ...spotStyle,
           borderRadius: 8,
           boxShadow: "0 0 0 9999px rgba(0,0,0,0.75)",
           background: "transparent",
@@ -102,9 +112,9 @@ function TutorialOverlay({ onDismiss, onExit }: { onDismiss: () => void; onExit:
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          position: "absolute",
-          top: 66,
-          right: 24,
+          position: "fixed",
+          top: calloutTop,
+          right: calloutRight,
           zIndex: 10001,
           display: "flex",
           flexDirection: "column",
@@ -299,22 +309,21 @@ function TravelPageInner() {
   const [error, setError] = useState<string | null>(null);
   const [selectedStationId, setSelectedStationId] = useState<string>("");
   const [direction, setDirection] = useState<number | null>(null);
-  const [showTutorial, setShowTutorial] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(true);
+  const [modeButtonsRect, setModeButtonsRect] = useState<DOMRect | null>(null);
+  const modeButtonsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const seen = sessionStorage.getItem("ion-tutorial-seen");
-    if (!seen) {
-      setShowTutorial(true);
+    if (showTutorial && modeButtonsRef.current) {
+      setModeButtonsRect(modeButtonsRef.current.getBoundingClientRect());
     }
-  }, []);
+  }, [showTutorial]);
 
   function dismissTutorial() {
     setShowTutorial(false);
-    sessionStorage.setItem("ion-tutorial-seen", "1");
   }
 
   function exitTutorial() {
-    sessionStorage.setItem("ion-tutorial-seen", "1");
     router.push("/");
   }
 
@@ -354,7 +363,7 @@ function TravelPageInner() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#FFFFFF", color: "#006BB7" }}>
-      {showTutorial && <TutorialOverlay onDismiss={dismissTutorial} onExit={exitTutorial} />}
+      {showTutorial && <TutorialOverlay onDismiss={dismissTutorial} onExit={exitTutorial} targetRect={modeButtonsRect} />}
 
       {/* Header — white bg with blue text and yellow accent */}
       <header
@@ -372,7 +381,7 @@ function TravelPageInner() {
         </div>
 
         {/* Mode tabs — z-index above tutorial overlay so clicks pass through */}
-        <div className="flex items-center gap-2" style={{ position: "relative", zIndex: showTutorial ? 10001 : "auto" }}>
+        <div ref={modeButtonsRef} className="flex items-center gap-2" style={{ position: "relative", zIndex: showTutorial ? 10001 : "auto" }}>
           <span className="text-xs font-medium" style={{ color: "#FFD100" }}>
             travel modes:
           </span>

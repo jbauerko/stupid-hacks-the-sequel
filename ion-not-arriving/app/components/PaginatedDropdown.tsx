@@ -1,6 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 interface PaginatedDropdownProps {
   times: string[];
@@ -9,14 +18,15 @@ interface PaginatedDropdownProps {
 const PAGE_SIZE = 5;
 
 export default function PaginatedDropdown({ times }: PaginatedDropdownProps) {
+  const scrambledTimes = useMemo(() => shuffle(times), [times]);
   const [open, setOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
 
   if (times.length === 0) return null;
 
-  const totalPages = Math.ceil(times.length / PAGE_SIZE);
-  const pageItems = times.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const totalPages = Math.ceil(scrambledTimes.length / PAGE_SIZE);
+  const pageItems = scrambledTimes.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   function handleSelect(time: string) {
     setSelected(time);

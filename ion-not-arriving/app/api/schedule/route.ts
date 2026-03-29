@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import JSZip from "jszip";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 const GTFS_URL =
   "https://webapps.regionofwaterloo.ca/api/grt-routes/api/staticfeeds/2";
@@ -28,9 +29,10 @@ function cleanName(name: string): string {
 }
 
 export async function GET() {
+  try {
   const response = await fetch(GTFS_URL, { next: { revalidate: 3600 } });
   if (!response.ok) {
-    return NextResponse.json({ error: "Failed to fetch GTFS feed" }, { status: 502 });
+    return NextResponse.json({ error: `GTFS feed returned ${response.status}` }, { status: 502 });
   }
 
   const arrayBuffer = await response.arrayBuffer();
@@ -199,4 +201,8 @@ export async function GET() {
   }
 
   return NextResponse.json({ stations, schedule: scheduleOut, headsigns, routePaths });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
